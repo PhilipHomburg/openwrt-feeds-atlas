@@ -1,0 +1,22 @@
+From 27bc143e576fb68027ce358e37c767ae6cbd3731 Mon Sep 17 00:00:00 2001
+From: Philip Homburg <phomburg@ripe.net>
+Date: Wed, 26 Aug 2020 14:26:00 +0200
+Subject: [PATCH 4/4] Disable root login
+
+---
+ package/base-files/files/etc/shadow | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/package/base-files/files/etc/shadow b/package/base-files/files/etc/shadow
+index 4b4154f21f..77ebac6d68 100644
+--- a/package/base-files/files/etc/shadow
++++ b/package/base-files/files/etc/shadow
+@@ -1,4 +1,4 @@
+-root::0:0:99999:7:::
++root:*:0:0:99999:7:::
+ daemon:*:0:0:99999:7:::
+ ftp:*:0:0:99999:7:::
+ network:*:0:0:99999:7:::
+-- 
+2.20.1
+

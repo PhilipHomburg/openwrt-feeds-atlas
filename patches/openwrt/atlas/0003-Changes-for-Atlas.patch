@@ -1,0 +1,247 @@
+From 203e01380a51d3a6326939607f7d88690505070c Mon Sep 17 00:00:00 2001
+From: Philip Homburg <phomburg@ripe.net>
+Date: Fri, 21 Aug 2020 14:57:16 +0200
+Subject: [PATCH 3/4] Changes for Atlas
+
+---
+ .../patches/0001-Changes-for-Atlas.patch      | 228 ++++++++++++++++++
+ 1 file changed, 228 insertions(+)
+ create mode 100644 package/libs/libevent2/patches/0001-Changes-for-Atlas.patch
+
+diff --git a/package/libs/libevent2/patches/0001-Changes-for-Atlas.patch b/package/libs/libevent2/patches/0001-Changes-for-Atlas.patch
+new file mode 100644
+index 0000000000..417207c43e
+--- /dev/null
++++ b/package/libs/libevent2/patches/0001-Changes-for-Atlas.patch
+@@ -0,0 +1,228 @@
++From 0c4aa396a47153e85706da7a33ee1937f9ead355 Mon Sep 17 00:00:00 2001
++From: Philip Homburg <phomburg@ripe.net>
++Date: Fri, 21 Aug 2020 11:54:59 +0200
++Subject: [PATCH] Changes for Atlas
++
++---
++ evdns.c              | 43 +++++++++++++++++++++++++++++++++++
++ evutil.c             | 53 ++++++++++++++++++++++++++++++++++++++++++--
++ include/event2/dns.h |  9 ++++++++
++ 3 files changed, 103 insertions(+), 2 deletions(-)
++
++diff --git a/evdns.c b/evdns.c
++index de3848ad..11a50702 100644
++--- a/evdns.c
+++++ b/evdns.c
++@@ -316,6 +316,8 @@ struct evdns_base {
++ 
++ 	struct event_base *event_base;
++ 
+++	char *interface_name;
+++
++ 	/* The number of good nameservers that we have */
++ 	int global_good_nameservers;
++ 
++@@ -2530,6 +2532,16 @@ evdns_nameserver_add_impl_(struct evdns_base *base, const struct sockaddr *addre
++ 	ns->socket = evutil_socket_(address->sa_family,
++ 	    SOCK_DGRAM|EVUTIL_SOCK_NONBLOCK|EVUTIL_SOCK_CLOEXEC, 0);
++ 	if (ns->socket < 0) { err = 1; goto out1; }
+++	if (ns->base->interface_name)
+++	{
+++		if (setsockopt(ns->socket, SOL_SOCKET, SO_BINDTODEVICE,
+++			ns->base->interface_name,
+++			strlen(ns->base->interface_name)+1) == -1)
+++		{
+++			err= 2;
+++			goto out2;
+++		}
+++	}
++ 
++ 	if (base->global_outgoing_addrlen &&
++ 	    !evutil_sockaddr_is_loopback_(address)) {
++@@ -4131,6 +4143,12 @@ evdns_base_free_and_unlock(struct evdns_base *base, int fail_requests)
++ 	base->server_head = NULL;
++ 	base->global_good_nameservers = 0;
++ 
+++	if (base->interface_name)
+++	{
+++		free(base->interface_name);
+++		base->interface_name= NULL;
+++	}
+++
++ 	if (base->global_search_state) {
++ 		for (dom = base->global_search_state->head; dom; dom = dom_next) {
++ 			dom_next = dom->next;
++@@ -4175,6 +4193,22 @@ evdns_base_clear_host_addresses(struct evdns_base *base)
++ 	EVDNS_UNLOCK(base);
++ }
++ 
+++int evdns_base_set_interface(struct evdns_base *base, char *interface_name)
+++{
+++	if (base->interface_name)
+++	{
+++		free(base->interface_name);
+++		base->interface_name= NULL;
+++	}
+++	if (!interface_name)
+++		return 0;
+++
+++	base->interface_name= strdup(interface_name);
+++	if (!base->interface_name)
+++		return -1;
+++	return 0;
+++}
+++
++ void
++ evdns_shutdown(int fail_requests)
++ {
++@@ -4249,6 +4283,15 @@ evdns_base_load_hosts_impl(struct evdns_base *base, const char *hosts_fname)
++ 
++ 	ASSERT_LOCKED(base);
++ 
+++	{
+++		struct hosts_entry *victim;
+++		while ((victim = TAILQ_FIRST(&base->hostsdb))) {
+++			TAILQ_REMOVE(&base->hostsdb, victim, next);
+++			mm_free(victim);
+++		}
+++	}
+++
+++
++ 	if (hosts_fname == NULL ||
++ 	    (err = evutil_read_file_(hosts_fname, &str, &len, 0)) < 0) {
++ 		char tmp[64];
++diff --git a/evutil.c b/evutil.c
++index 3412c2ae..6e84285d 100644
++--- a/evutil.c
+++++ b/evutil.c
++@@ -74,6 +74,7 @@
++ #endif
++ #include <time.h>
++ #include <sys/stat.h>
+++#include <net/if.h>
++ #ifdef EVENT__HAVE_IFADDRS_H
++ #include <ifaddrs.h>
++ #endif
++@@ -102,6 +103,9 @@
++ #define mode_t int
++ #endif
++ 
+++static int evutil_inet_pton_scope(int af, const char *src, void *dst,
+++	unsigned *indexp);
+++
++ int
++ evutil_open_closeonexec_(const char *pathname, int flags, unsigned mode)
++ {
++@@ -990,6 +994,7 @@ evutil_getaddrinfo_common_(const char *nodename, const char *servname,
++     struct evutil_addrinfo *hints, struct evutil_addrinfo **res, int *portnum)
++ {
++ 	int port = 0;
+++	unsigned int if_index;
++ 	const char *pname;
++ 
++ 	if (nodename == NULL && servname == NULL)
++@@ -1063,10 +1068,13 @@ evutil_getaddrinfo_common_(const char *nodename, const char *servname,
++ 	if (hints->ai_family == PF_INET6 || hints->ai_family == PF_UNSPEC) {
++ 		struct sockaddr_in6 sin6;
++ 		memset(&sin6, 0, sizeof(sin6));
++-		if (1==evutil_inet_pton(AF_INET6, nodename, &sin6.sin6_addr)) {
+++		if (1==evutil_inet_pton_scope(AF_INET6, nodename,
+++			&sin6.sin6_addr, &if_index))
+++		{
++ 			/* Got an ipv6 address. */
++ 			sin6.sin6_family = AF_INET6;
++ 			sin6.sin6_port = htons(port);
+++			sin6.sin6_scope_id= if_index;
++ 			*res = evutil_new_addrinfo_((struct sockaddr*)&sin6,
++ 			    sizeof(sin6), hints);
++ 			if (!*res)
++@@ -1981,6 +1989,42 @@ evutil_inet_ntop(int af, const void *src, char *dst, size_t len)
++ #endif
++ }
++ 
+++static int
+++evutil_inet_pton_scope(int af, const char *src, void *dst, unsigned *indexp)
+++{
+++	int r;
+++	unsigned if_index;
+++	char *check, *cp, *tmp_src;
+++
+++	*indexp= 0;	/* Reasonable default */
+++
+++	/* Bail out if not IPv6 */
+++	if (af != AF_INET6)
+++		return evutil_inet_pton(af, src, dst);
+++
+++	cp= strchr(src, '%');
+++
+++	/* Bail out if no zone ID */
+++	if (cp == NULL)
+++		return evutil_inet_pton(af, src, dst);
+++	
+++	if_index= if_nametoindex(cp+1);
+++	if (if_index == 0)
+++	{
+++		/* Could be numeric */
+++		if_index= strtoul(cp+1, &check, 10);
+++		if (check[0] != '\0')
+++			return 0;
+++	}
+++	*indexp= if_index;
+++	tmp_src= strdup(src);
+++	cp= strchr(tmp_src, '%');
+++	*cp= '\0';
+++	r= evutil_inet_pton(af, tmp_src, dst);
+++	free(tmp_src);
+++	return r;
+++}
+++
++ int
++ evutil_inet_pton(int af, const char *src, void *dst)
++ {
++@@ -2097,6 +2141,7 @@ int
++ evutil_parse_sockaddr_port(const char *ip_as_string, struct sockaddr *out, int *outlen)
++ {
++ 	int port;
+++	unsigned int if_index;
++ 	char buf[128];
++ 	const char *cp, *addr_part, *port_part;
++ 	int is_ipv6;
++@@ -2166,10 +2211,14 @@ evutil_parse_sockaddr_port(const char *ip_as_string, struct sockaddr *out, int *
++ #endif
++ 		sin6.sin6_family = AF_INET6;
++ 		sin6.sin6_port = htons(port);
++-		if (1 != evutil_inet_pton(AF_INET6, addr_part, &sin6.sin6_addr))
+++		if (1 != evutil_inet_pton_scope(AF_INET6, addr_part,
+++			&sin6.sin6_addr, &if_index))
+++		{
++ 			return -1;
+++		}
++ 		if ((int)sizeof(sin6) > *outlen)
++ 			return -1;
+++		sin6.sin6_scope_id= if_index;
++ 		memset(out, 0, *outlen);
++ 		memcpy(out, &sin6, sizeof(sin6));
++ 		*outlen = sizeof(sin6);
++diff --git a/include/event2/dns.h b/include/event2/dns.h
++index 13ce027e..dc045eaf 100644
++--- a/include/event2/dns.h
+++++ b/include/event2/dns.h
++@@ -282,6 +282,15 @@ void evdns_base_free(struct evdns_base *base, int fail_requests);
++ EVENT2_EXPORT_SYMBOL
++ void evdns_base_clear_host_addresses(struct evdns_base *base);
++ 
+++/**
+++  Set the outging interface to be used for DNS queries
+++
+++  @param base the evdns base to modify
+++  @param interface_name the name of the interface to be used
+++ */
+++EVENT2_EXPORT_SYMBOL
+++int evdns_base_set_interface(struct evdns_base *base, char *interface_name);
+++
++ /**
++   Convert a DNS error code to a string.
++ 
++-- 
++2.20.1
++
+-- 
+2.20.1
+

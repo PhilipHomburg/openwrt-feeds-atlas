@@ -1,0 +1,22 @@
+From 58f1c91d3535579c4105f9c9aa60003bfc365738 Mon Sep 17 00:00:00 2001
+From: Philip Homburg <phomburg@ripe.net>
+Date: Mon, 27 Jul 2020 14:28:45 +0200
+Subject: [PATCH 2/4] Add atlas user
+
+---
+ package/base-files/files/etc/passwd | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/package/base-files/files/etc/passwd b/package/base-files/files/etc/passwd
+index 1d06a80361..9b29807a0b 100644
+--- a/package/base-files/files/etc/passwd
++++ b/package/base-files/files/etc/passwd
+@@ -2,4 +2,5 @@ root:x:0:0:root:/root:/bin/ash
+ daemon:*:1:1:daemon:/var:/bin/false
+ ftp:*:55:55:ftp:/home/ftp:/bin/false
+ network:*:101:101:network:/var:/bin/false
++atlas:*:1001:1001:network:/var:/bin/ash
+ nobody:*:65534:65534:nobody:/var:/bin/false
+-- 
+2.20.1
+

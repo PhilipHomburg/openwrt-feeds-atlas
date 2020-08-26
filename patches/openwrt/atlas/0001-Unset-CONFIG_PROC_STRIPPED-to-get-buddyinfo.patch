@@ -1,0 +1,25 @@
+From 6d0f73547d658d68c62743d5832acc91a954b5ee Mon Sep 17 00:00:00 2001
+From: Philip Homburg <phomburg@ripe.net>
+Date: Mon, 17 Aug 2020 14:43:52 +0200
+Subject: [PATCH 1/4] Unset CONFIG_PROC_STRIPPED to get buddyinfo
+
+---
+ target/linux/generic/config-4.14 | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/target/linux/generic/config-4.14 b/target/linux/generic/config-4.14
+index 5a4dab9888..64e70b17ad 100644
+--- a/target/linux/generic/config-4.14
++++ b/target/linux/generic/config-4.14
+@@ -3647,7 +3647,7 @@ CONFIG_PRINT_STACK_DEPTH=64
+ CONFIG_PROC_FS=y
+ # CONFIG_PROC_KCORE is not set
+ # CONFIG_PROC_PAGE_MONITOR is not set
+-CONFIG_PROC_STRIPPED=y
++# CONFIG_PROC_STRIPPED is not set
+ CONFIG_PROC_SYSCTL=y
+ # CONFIG_PROFILE_ALL_BRANCHES is not set
+ # CONFIG_PROFILE_ANNOTATED_BRANCHES is not set
+-- 
+2.20.1
+
