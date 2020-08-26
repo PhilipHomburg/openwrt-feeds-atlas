@@ -1,0 +1,13 @@
+#!/bin/sh /etc/rc.common
+
+START=60
+
+start()
+{
+	#expr "$(cat /proc/cmdline)" : '.* root=/dev/mmcblk2p' >/dev/null || exit
+
+	# Try to start ATLAS.
+	echo "startatlas: starting ATLAS" >/dev/console
+	cd /home/atlas
+	screen -Admt "atlas" /home/atlas/bin/ATLAS >/dev/console >/dev/console 2>&1
+}

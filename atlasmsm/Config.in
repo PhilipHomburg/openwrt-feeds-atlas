@@ -1,0 +1,6 @@
+config ATLAS_MSM
+	bool "RIPE NCC Atlas Busybox"
+	depends on PACKAGE_libevent
+	default y
+	help
+		RIPE NCC Atlas Measurements
