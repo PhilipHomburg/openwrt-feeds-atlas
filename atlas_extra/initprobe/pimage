@@ -1,0 +1,64 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]
+then
+	echo >&2 "Usage: initprobe dev|test|prod" 
+	exit 1
+fi
+
+export probe_env=$1
+
+model="atlas-mox"
+
+cwd=$PWD
+basedir=$cwd/$(dirname "$0")
+cd "$basedir"
+
+get_version()
+{
+	(
+		mkdir -p /tmp/root
+		cd /tmp/root
+		tar xvzf "$BINDIR/$LOC_ROOTFS_FILE_GZ" "$FIRMWARE_FILE" >/dev/null
+		cat "$FIRMWARE_FILE"
+	)
+}
+
+BINDIR=$cwd/bin/targets/mvebu/cortexa53
+FIRMWARE_FILE=./home/atlas/state/FIRMWARE_APPS_VERSION
+LOC_ROOTFS_FILE_BASE="turrisos-5.1.0-5b9b833f8c4dc973f557e90f1038d7d3f1d2042b-mvebu-cortexa53-device-cznic-mox-rootfs.tar"
+LOC_ROOTFS_FILE_GZ="$LOC_ROOTFS_FILE_BASE".gz
+LOC_ROOTFS_FILE_BZ2="$LOC_ROOTFS_FILE_BASE".bz2
+
+# Convert to bz2
+gzip -dc "$BINDIR/$LOC_ROOTFS_FILE_GZ" | bzip2 -c > "$BINDIR/$LOC_ROOTFS_FILE_BZ2"
+
+
+FIRMWARE_APPS_VERSION=$(get_version)
+ROOTFS_VERSION="$FIRMWARE_APPS_VERSION"
+ROOTFS_FILE="rootfs-$model-$ROOTFS_VERSION.img.bz2"
+OPENSSL=openssl
+BASE64=base64
+
+if [ $probe_env = "prod" ] ; then
+	PREF=""
+else
+	PREF="-$probe_env"
+fi
+
+sigarg=''
+if [ $probe_env = "dev" ]
+then
+	# Sign firmware
+	keyname=2020-07-08-dev
+	$OPENSSL dgst -sha256 < "$BINDIR/$LOC_ROOTFS_FILE_BZ2" | cut -f2 -d" " > $LOC_ROOTFS_FILE.hash
+	$OPENSSL rsautl -sign -inkey $HOME/atlas-signing-keys/$keyname.private.pem -keyform PEM -in $LOC_ROOTFS_FILE.hash > $LOC_ROOTFS_FILE.signature.$keyname
+	$BASE64 -w0 < $LOC_ROOTFS_FILE.signature.$keyname > $LOC_ROOTFS_FILE.signature.$keyname.asc
+	sigarg="--sig 1 $keyname $(cat $LOC_ROOTFS_FILE.signature.$keyname.asc)"
+fi
+
+#exit
+
+scp "$BINDIR/$LOC_ROOTFS_FILE_BZ2" atlas@admin$PREF:$ROOTFS_FILE
+printf  "./atlas/manage.py import_app -a $model -w $ROOTFS_VERSION -g md5 -f ./$ROOTFS_FILE $sigarg\n"
+ssh atlas@admin$PREF "./atlas/manage.py import_app -a $model -w $ROOTFS_VERSION -g md5 -f ./$ROOTFS_FILE $sigarg"
