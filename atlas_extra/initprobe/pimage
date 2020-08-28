@@ -28,11 +28,10 @@ BINDIR=$cwd/bin/targets/mvebu/cortexa53
 FIRMWARE_FILE=./home/atlas/state/FIRMWARE_APPS_VERSION
 LOC_ROOTFS_FILE_BASE="turrisos-5.1.0-5b9b833f8c4dc973f557e90f1038d7d3f1d2042b-mvebu-cortexa53-device-cznic-mox-rootfs.tar"
 LOC_ROOTFS_FILE_GZ="$LOC_ROOTFS_FILE_BASE".gz
-LOC_ROOTFS_FILE_BZ2="$LOC_ROOTFS_FILE_BASE".bz2
+LOC_ROOTFS_FILE_BZ2="$LOC_ROOTFS_FILE_GZ".bz2
 
-# Convert to bz2
-gzip -dc "$BINDIR/$LOC_ROOTFS_FILE_GZ" | bzip2 -c > "$BINDIR/$LOC_ROOTFS_FILE_BZ2"
-
+# The Atlas backend wants bzip2, but schnapps only takes .gz
+bzip2 -c <"$BINDIR/$LOC_ROOTFS_FILE_GZ" >"$BINDIR/$LOC_ROOTFS_FILE_BZ2"
 
 FIRMWARE_APPS_VERSION=$(get_version)
 ROOTFS_VERSION="$FIRMWARE_APPS_VERSION"
