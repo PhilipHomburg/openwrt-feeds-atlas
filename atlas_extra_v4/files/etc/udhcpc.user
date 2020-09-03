@@ -1,0 +1,94 @@
+#!/bin/sh
+
+exec >/dev/console 2>&1
+
+[ -z "$1" ] && echo "Error: should be called from udhcpc" && exit 1
+
+RESOLV_CONF="/tmp/resolv.conf.dhcp4"
+RESOLV_CONF_WLAN0="/tmp/resolv.conf.wlan0.dhcp4"
+CMD_RESOLVCONF=/home/atlas/bin/resolvconf
+[ -n "$broadcast" ] && BROADCAST="broadcast $broadcast"
+[ -n "$subnet" ] && NETMASK="netmask $subnet"
+
+ATLAS_NU="/home/atlas/status/network_v4_info.txt"
+if [ "$interface" = "wlan0" ]
+then
+	ATLAS_NU="/tmp/network_v4_wifi_info.txt"
+fi
+
+BASE_DIR=/home/atlas
+DATA_DIR=$BASE_DIR/data
+BB_DIR=$BASE_DIR/bb-13.3/bin
+
+mkdir -p /tmp/data
+mkdir -p $BASE_DIR/data/new
+mkdir -p $BASE_DIR/data/out
+mkdir -p /tmp/status
+
+epoch()
+{
+	date '+%s'
+}
+condmv()
+{
+	$BB_DIR/condmv "$@"
+}
+
+D=`epoch`
+
+case "$1" in
+	deconfig)
+		echo "RESULT 9014 done $D DHCP deconfig" >> $DATA_DIR/new/dhcp
+		#/sbin/ifconfig $interface 0.0.0.0
+		;;
+
+	renew|bound)
+		echo "RESULT 9014 done $D DHCP $1 ip $ip lease $lease" >> $DATA_DIR/new/dhcp
+
+		echo "P_TO_C_NETWORK_UPDATE" > $ATLAS_NU
+		echo "IPV4_LOCAL_ADDR $ip" >> $ATLAS_NU
+		echo "IPV4_BROADCAST $broadcast" >> $ATLAS_NU
+		echo "IPV4_NETMASK $subnet" >> $ATLAS_NU
+
+		#/sbin/ifconfig $interface $ip $BROADCAST $NETMASK
+
+		if [ -n "$router" ] ; then
+			echo "IPV4_GW $router" >> $ATLAS_NU
+			echo "deleting routers"
+			while route del default gw 0.0.0.0 dev $interface ; do
+				:
+			done
+
+			for i in $router ; do
+				route add default gw $i dev $interface
+			done
+		fi
+		echo "DHCP True " >> $ATLAS_NU
+		
+		if [ "$interface" != "wlan0" ]
+		then
+			echo -n > $RESOLV_CONF
+			[ -n "$domain" ] && echo search $domain >> $RESOLV_CONF
+			for i in $dns ; do
+				echo adding dns $i
+				echo nameserver $i >> $RESOLV_CONF
+				#echo "nameserver $i " >>  $ATLAS_NU
+			done
+		else
+			echo -n > $RESOLV_CONF_WLAN0
+			[ -n "$domain" ] && echo search $domain >> $RESOLV_CONF_WLAN0
+			for i in $dns ; do
+				echo adding dns $i to resolv.conf.wlan0
+				echo nameserver $i >> $RESOLV_CONF_WLAN0
+			done
+		fi
+		$CMD_RESOLVCONF "$interface"
+		;;
+	*)
+		echo "RESULT 9014 done $D DHCP $1 ip $ip lease $lease" >> $DATA_DIR/new/dhcp
+		;;
+esac
+
+condmv $DATA_DIR/new/dhcp $DATA_DIR/out/dhcp
+
+exit 0
