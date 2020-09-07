@@ -1,0 +1,60 @@
+#!/bin/sh
+
+if [ $# -ne 4 ]
+then
+	echo "Usage: copy-keys <ethernet-addr> <probe-ip> dev|test|prod serial" >&2
+	exit 1
+fi
+
+ether=$1
+probeaddr=$2
+mode=$3
+serial=$4
+
+SSHOPT='-o StrictHostKeyChecking=no'
+
+KEYS_DIR=keys
+if [ "$mode" = "prod"  ]  ; then
+        KEYS_DIR='keys-prod'
+fi
+
+cd /home/atlas/openwrt/initprobe
+
+log_entry()
+{
+	echo $(date +"%Y%m%d-%H%M%S") $1 probe $(echo $ether | tr -d ':') $ether $serial $2 >> initprobe-$mode.log
+}
+
+# Generate a new key if one doesn't exist already
+if [ ! -f "$KEYS_DIR/$ether" ] 
+then
+	echo "Creating a new key for the probe MAC $ether $KEYS_DIR/$ether  "
+	rm -f "$KEYS_DIR/$ether"
+	ssh-keygen -t rsa -P '' -C $ether  -f $KEYS_DIR/$ether 
+
+	# Generate keys for the two partitions on USB.
+	dd if=/dev/urandom of=$KEYS_DIR/$ether.sda2 count=1
+	dd if=/dev/urandom of=$KEYS_DIR/$ether.sda3 count=1
+else
+        echo "Using the existing key for the probe $KEYS_DIR/$ether"
+fi
+
+
+
+echo Copying keys to $ether
+scp $SSHOPT $KEYS_DIR/$ether.sda2 root@$probeaddr:/home/atlas/etc/sda2.key ||
+	{ log_entry ERROR sda2; exit 1; }
+scp $SSHOPT $KEYS_DIR/$ether.sda3 root@$probeaddr:/home/atlas/etc/sda3.key ||
+	{ log_entry ERROR sda3; exit 1; }
+chmod 600 $KEYS_DIR/$ether 
+scp $SSHOPT $KEYS_DIR/$ether root@$probeaddr:/home/atlas/etc/probe_key ||
+	{ log_entry ERROR probe_key; exit 1; }
+echo "copying led files"
+ssh $SSHOPT root@$probeaddr "mkdir -p /tmp/leds" 2>/dev/null >/dev/null
+scp $SSHOPT leds/1 root@$probeaddr:/tmp/leds/1 2>/dev/null >/dev/null
+scp $SSHOPT leds/2 root@$probeaddr:/tmp/leds/2 2>/dev/null >/dev/null
+scp $SSHOPT leds/3 root@$probeaddr:/tmp/leds/3 2>/dev/null >/dev/null
+scp $SSHOPT leds/4 root@$probeaddr:/tmp/leds/4 2> /dev/null > /dev/null
+echo "$mode" >/tmp/mode
+scp $SSHOPT /tmp/mode root@$probeaddr:/home/atlas/state/mode || { log_entry ERROR mode; exit 1; }
+

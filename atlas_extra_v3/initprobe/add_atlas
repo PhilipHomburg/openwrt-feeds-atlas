@@ -1,0 +1,110 @@
+#!/bin/sh
+set -e 
+
+BINDIR=/home/atlas/openwrt/bin/ar71xx
+ROOT=openwrt-ar71xx-generic-rootfs.tar.gz
+ATLASROOT=openwrt-ar71xx-atlas-rootfs.tar
+TMPROOT=/tmp/root
+FIRMWARE_APPS_VERSION_FILE=$TMPROOT/home/atlas/state/FIRMWARE_APPS_VERSION
+UTILS_DIR=utils
+INITPROBE_DIR=/home/atlas/openwrt/initprobe
+EXTRA_DIR=/home/atlas/openwrt/files/
+
+NTPD="ntpd_4.2.8-1_ar71xx.ipk"
+NTPUTILS="ntp-utils_4.2.8-1_ar71xx.ipk"
+CHRONY="chrony_1.26-2_ar71xx.ipk"
+
+# Basic packages
+P="sfdisk_2.21.2-1_ar71xx.ipk libext2fs_1.42.4-1_ar71xx.ipk"
+P="$P e2fsprogs_1.42.4-1_ar71xx.ipk libevent2_2.1.11-1_ar71xx.ipk"
+P="$P libevent2-openssl_2.1.11-1_ar71xx.ipk"
+P="$P atlasmsm_2.3.0-1_ar71xx.ipk atlasprobe_5022-1_ar71xx.ipk"
+P="$P atlas_extra_v3_1.0-1_ar71xx.ipk $CHRONY"
+P="$P libcap_2.22-1_ar71xx.ipk libcom_err_1.42.4-1_ar71xx.ipk"
+P="$P coreutils-base64_8.16-1_ar71xx.ipk openssl-util_1.0.2n-1_ar71xx.ipk"
+P="$P libopenssl_1.0.2n-1_ar71xx.ipk zlib_1.2.7-1_ar71xx.ipk"
+P="$P screen_4.0.3-3_ar71xx.ipk ip_3.3.0-1_ar71xx.ipk"
+P="$P coreutils-paste_8.16-1_ar71xx.ipk sudo_1.7.8p1-1_ar71xx.ipk"
+
+# Wifi
+PW="wpad_20120428-1_ar71xx.ipk iw_3.3-1_ar71xx.ipk wprobe-util_1-1_ar71xx.ipk"
+PW="$PW kmod-wdt-ath79_3.3.8-1_ar71xx.ipk"
+PW="$PW kmod-ath9k_3.3.8+2012-07-06-1_ar71xx.ipk"
+PW="$PW kmod-ath9k-common_3.3.8+2012-07-06-1_ar71xx.ipk"
+PW="$PW kmod-ath_3.3.8+2012-07-06-1_ar71xx.ipk"
+PW="$PW kmod-mac80211_3.3.8+2012-07-06-1_ar71xx.ipk"
+PW="$PW kmod-crypto-core_3.3.8-1_ar71xx.ipk kmod-crypto-arc4_3.3.8-1_ar71xx.ipk"
+PW="$PW kmod-crypto-aes_3.3.8-1_ar71xx.ipk"
+PW="$PW kmod-cfg80211_3.3.8+2012-07-06-1_ar71xx.ipk"
+PW="$PW wpa-cli_20120428-1_ar71xx.ipk ip_3.3.0-1_ar71xx.ipk"
+
+# Debugging
+PD="libpcap_1.1.1-2_ar71xx.ipk tcpdump_4.2.1-1_ar71xx.ipk"
+PD="$PD rsync_3.0.9-1_ar71xx.ipk strace_4.5.20-1_ar71xx.ipk"
+#PD="$PD gdb_6.8a-4_ar71xx.ipk"
+
+PACKAGES="$P $PD"
+
+TMPPACKAGE=/tmp/package
+
+rm -rf $TMPROOT
+mkdir -p $TMPROOT
+(cd $TMPROOT && tar xfz $BINDIR/$ROOT)
+
+# Remove a few files from the root filesystem
+rm -f $TMPROOT/etc/init.d/atlasusb
+rm -f $TMPROOT/home/atlas/bin/atlas_usb_init.sh
+rm -f $TMPROOT/home/atlas/state/mode
+rm -f $TMPROOT/home/atlas/etc/2*-[0-9]*-[0-9]*.dev
+rm -f $TMPROOT/home/atlas/etc/2*-[0-9]*-[0-9]*.test
+rm -f $TMPROOT/home/atlas/etc/2*-[0-9]*-[0-9]*.prod
+
+# copy passwdset script
+# cp $INITPROBE_DIR/passwdset $TMPROOT/home/atlas/bin/.
+
+add_package()
+{
+	rm -rf $TMPPACKAGE
+	mkdir -p $TMPPACKAGE
+	(cd $TMPPACKAGE && tar xfz $BINDIR/packages/$1)
+	(cd $TMPPACKAGE && tar xfz $TMPPACKAGE/control.tar.gz)
+	cat $TMPPACKAGE/control | grep Depends
+	(cd $TMPROOT && tar xfz $TMPPACKAGE/data.tar.gz)
+}
+
+for p in $PACKAGES
+do
+	echo "adding $p"
+	add_package $p
+done
+
+(cd $TMPROOT && tar cf $BINDIR/$ATLASROOT .)
+
+# Now create the image file
+
+FIRMWARE_APPS_VERSION=`cat $FIRMWARE_APPS_VERSION_FILE`
+echo  "build version $FIRMWARE_APPS_VERSION"
+ROOTFS_VERSION="$FIRMWARE_APPS_VERSION"
+
+cd $BINDIR  
+
+mkdir -p $UTILS_DIR
+
+# Extract sfdisk
+rm -rf /tmp/pimage
+mkdir -p /tmp/pimage
+(cd /tmp/pimage && tar xvf $BINDIR/$ATLASROOT ./sbin/sfdisk)
+mv /tmp/pimage/sbin/sfdisk $UTILS_DIR
+
+# Extract mke2fs, libe2p.so.2, libe2p.so.2.3
+rm -rf /tmp/pimage
+mkdir -p /tmp/pimage
+(cd /tmp/pimage && tar xvf $BINDIR/$ATLASROOT ./usr/sbin/mke2fs ./usr/lib/libe2p.so.2 ./usr/lib/libe2p.so.2.3 ./usr/lib/libext2fs.so.2.4 ./usr/lib/libext2fs.so.2 ./usr/lib/libcom_err.so.2 ./usr/lib/libcom_err.so.2.1 )
+mv /tmp/pimage/usr/sbin/mke2fs /tmp/pimage/usr/lib/libe2p.so.2 /tmp/pimage/usr/lib/libe2p.so.2.3 /tmp/pimage/usr/lib/libext2fs.so.2.4 /tmp/pimage/usr/lib/libext2fs.so.2 /tmp/pimage/usr/lib/libcom_err.so.2 /tmp/pimage/usr/lib/libcom_err.so.2.1 $UTILS_DIR
+
+# Create tar file
+tar cvf rootfs-$ROOTFS_VERSION.img $UTILS_DIR openwrt-ar71xx-atlas-rootfs.tar 
+
+ROOTFS_FILE="rootfs-$ROOTFS_VERSION.img.bz2"
+rm -f $ROOTFS_FILE
+bzip2 -1 "rootfs-$ROOTFS_VERSION.img"

@@ -1,0 +1,12 @@
+subnet 192.168.0.0 netmask 255.255.255.0 {
+}
+subnet 192.168.1.0 netmask 255.255.255.0 {
+}
+subnet 192.168.2.0 netmask 255.255.255.0 {
+}
+subnet 10.211.55.0 netmask 255.255.255.0 {
+}
+host atlasprobe {
+  hardware ethernet ETHERNET_ADDRESS;
+  fixed-address FIXED_ADDRESS;
+}

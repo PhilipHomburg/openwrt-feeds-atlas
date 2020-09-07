@@ -1,0 +1,4 @@
+#!/bin/sh
+file="$1"
+openssl asn1parse -inform PEM -in $file -strparse 19 -offset 4 |
+	sed 's/.*INTEGER.*://'

@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e 
+
+if [ $# -ne 2 ]
+then
+	echo "Usage: sign-fw <file> <key>" >&2
+	exit
+fi
+
+file="$1"
+key="$2"
+
+if [ ! -f "$file" ]
+then
+	echo "$file: not found"
+	exit 1
+fi
+
+set $(openssl dgst -sha256 < $file)
+hash="$2"
+sig=$(echo $hash | openssl rsautl -sign -inkey $key.private.pem -keyform PEM |
+	base64 -w0)
+echo $key
+echo $sig

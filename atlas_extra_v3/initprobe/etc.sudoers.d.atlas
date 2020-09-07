@@ -1,0 +1,5 @@
+atlas   ALL = (root: operator) ALL
+atlas   ALL = NOPASSWD: /bin/bash
+atlas   ALL = NOPASSWD: /bin/sh
+atlas   ALL = NOPASSWD: /etc/init.d/isc-dhcp-server
+atlas   ALL = NOPASSWD: /usr/sbin/tcpdump

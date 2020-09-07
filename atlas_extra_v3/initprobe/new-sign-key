@@ -1,0 +1,10 @@
+#!/bin/sh
+if [ $# -ne 1 ]
+then
+	echo "Usage: new-sign-key <file>" >&2
+	exit
+fi
+
+file="$1"
+openssl genrsa -out $file.private.pem 2048
+openssl rsa -in $file.private.pem -out $file.pem -outform PEM -pubout

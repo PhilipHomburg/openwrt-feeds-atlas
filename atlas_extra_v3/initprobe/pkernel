@@ -1,0 +1,72 @@
+#!/bin/sh
+
+#model="tl-wr703n"
+model="tl-mr3020"
+
+OPENSSL=openssl
+BASE64=base64
+
+FIRMWARE_KERNEL_VERSION_FILE=/home/atlas/openwrt/package/atlas_usb_init/files/home/atlas/state/FIRMWARE_KERNEL_VERSION
+export probe_env=$1
+BINIMG="openwrt-ar71xx-generic-$model-v1-squashfs-sysupgrade.bin"
+INITDIR=/home/atlas/openwrt/initprobe
+
+FIRMWARE_KERNEL_VERSION=`cat $FIRMWARE_KERNEL_VERSION_FILE`
+echo  "kernel build version $FIRMWARE_KERNEL_VERSION"
+IMAGES_SRC_DIR=/home/atlas/openwrt/bin/ar71xx
+IMAGES_DST_DIR=/home/atlas/openwrt/initprobe/images
+cd $IMAGES_SRC_DIR
+
+KERNEL_VERSION="$FIRMWARE_KERNEL_VERSION"
+
+KERNEL_FILE_BZ2="kernel-$model-$KERNEL_VERSION.img.bz2"
+KERNEL_FILE_BIN="kernel-$model-$KERNEL_VERSION.bin"
+if [ -f "$IMAGES_DST_DIR/$KERNEL_FILE_BZ2" ] ; then
+	echo "compressed image file $IMAGES_DST_DIR/$KERNEL_FILE_BZ2 exist. deleting it to overwrite."
+	ls -l "$IMAGES_DST_DIR/$KERNEL_FILE_BZ2"
+	rm -f "$IMAGES_DST_DIR/$KERNEL_FILE_BZ2"
+fi
+
+if [ -f "$IMAGES_DST_DIR/$KERNEL_FILE_BIN" ] ; then
+	echo "image file $IMAGES_DST_DIR/$KERNEL_FILE_BIN exist. deleting it to overwrite."
+	ls -l "$IMAGES_DST_DIR/$KERNEL_FILE_BIN"
+	rm -f "$IMAGES_DST_DIR/$KERNEL_FILE_BIN"
+fi
+
+bzip2 -c1 $BINIMG > "$IMAGES_DST_DIR/$KERNEL_FILE_BZ2"
+cp $BINIMG "$IMAGES_DST_DIR/$KERNEL_FILE_BIN"
+
+echo "created new image files"
+ls -l "$IMAGES_DST_DIR/$KERNEL_FILE_BIN"
+ls -l "$IMAGES_DST_DIR/$KERNEL_FILE_BZ2"
+if [ X"$probe_env" = "Xprod" ] ; then
+	PREF=""
+else
+	PREF="-$probe_env"
+fi
+
+sigarg=''
+if [ $probe_env = "dev" ]
+then
+	# Sign firmware
+	keyname=2014-01-30-dev
+	$OPENSSL dgst -sha256 < $IMAGES_DST_DIR/$KERNEL_FILE_BZ2 | cut -f2 -d" " > $KERNEL_FILE_BZ2.hash
+	$OPENSSL rsautl -sign -inkey $INITDIR/$keyname.private.pem -keyform PEM -in $KERNEL_FILE_BZ2.hash > $KERNEL_FILE_BZ2.signature.$keyname
+	$BASE64 -w0 < $KERNEL_FILE_BZ2.signature.$keyname > $KERNEL_FILE_BZ2.signature.$keyname.asc
+	sigarg="--sig=1 $keyname $(cat $KERNEL_FILE_BZ2.signature.$keyname.asc)"
+fi
+
+echo "copying $KERNEL_FILE_BZ2 atlas@sheppard$PREF"
+scp "$IMAGES_DST_DIR/$KERNEL_FILE_BZ2" atlas@sheppard$PREF:
+if [ "$?" -gt "0" ] ; then
+	echo "scp failed. do not import it on sheppard$PREF."
+	exit 1
+else  
+	echo ssh atlas@sheppard$PREF "./atlas/manage.py import_kernel -a $model -w $KERNEL_VERSION -g md5 -f ./$KERNEL_FILE_BZ2 $sigarg"
+	ssh atlas@sheppard$PREF "./atlas/manage.py import_kernel -a $model -w $KERNEL_VERSION -g md5 -f ./$KERNEL_FILE_BZ2 $sigarg"
+fi
+
+if [ "$?" -gt "0" ] ; then
+	echo "import on atlas@sheppard$PREF returned error. 
+	exit 1
+fi 
