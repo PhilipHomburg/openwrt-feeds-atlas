@@ -1,0 +1,57 @@
+From 34a8b4e6f91e7a42dcd35e1e2556ffd86036754d Mon Sep 17 00:00:00 2001
+From: Michal Hrusecky <michal.hrusecky@turris.com>
+Date: Tue, 19 Jan 2021 15:35:23 +0100
+Subject: [PATCH] Add atlas support package
+
+---
+ hardware/mox/mox-support/Makefile | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/hardware/mox/mox-support/Makefile b/hardware/mox/mox-support/Makefile
+index b25e882..f6f5b05 100644
+--- a/hardware/mox/mox-support/Makefile
++++ b/hardware/mox/mox-support/Makefile
+@@ -25,6 +25,11 @@ define Package/mox-support
+   DEPENDS:=@TARGET_mvebu_cortexa53_DEVICE_cznic-mox +mox-generic-support
+ endef
+ 
++define Package/atlas-support
++  TITLE:=Ripe Atlas support package
++  DEPENDS:=@TARGET_mvebu_cortexa53_DEVICE_cznic-mox +mox-generic-support
++endef
++
+ define Package/shield-support
+   TITLE:=Shield support package
+   DEPENDS:=@TARGET_mvebu_cortexa53_DEVICE_cznic-mox +mox-generic-support \
+@@ -41,6 +46,10 @@ define Package/mox-support/description
+  Contains supporting files for Turris MOX.
+ endef
+ 
++define Package/atlas-support/description
++ Contains supporting files for Ripe Atlas.
++endef
++
+ define Package/shield-support/description
+  Contains supporting files for Turris Shield.
+ endef
+@@ -76,6 +85,11 @@ define Package/mox-support/install
+ 	$(INSTALL_DATA) ./files/reset_btn $(1)/etc/hotplug.d/button/mox_reset
+ endef
+ 
++define Package/atlas-support/install
++	$(INSTALL_DIR) $(1)/boot
++	mkimage -T script -C none -n boot -d files/boot.txt "$(1)"/boot/boot.scr
++endef
++
+ define Package/shield-support/install
+ 	$(INSTALL_DIR) $(1)/boot
+ 	# Factory reset by default - third mode but counting from 0
+@@ -101,4 +115,5 @@ endef
+ 
+ $(eval $(call BuildPackage,mox-generic-support))
+ $(eval $(call BuildPackage,mox-support))
++$(eval $(call BuildPackage,atlas-support))
+ $(eval $(call BuildPackage,shield-support))
+-- 
+2.30.0
+
