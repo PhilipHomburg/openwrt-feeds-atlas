@@ -201,11 +201,11 @@ configure() {
 				 # No options can be ommited in the result so instead check it
 				 # they are not enabled by any chance.
 				 if grep -qE "^$name=y" ./.config; then
-					 die "Config option that is forced to 'n' is set to 'y': $name=$value"
+					 warn "Config option that is forced to 'n' is set to 'y': $name=$value"
 				 fi
 			else
 				 if ! grep -qE "^$name=$value$" ./.config; then
-					 die "Config option is not present in generated config: $name=$value"
+					 warn "Config option is not present in generated config: $name=$value"
 				 fi
 			 fi
 		done < "$config"
