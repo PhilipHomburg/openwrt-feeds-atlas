@@ -50,9 +50,9 @@ if [ $probe_env = "dev" ]
 then
 	# Sign firmware
 	keyname=2020-07-08-dev
-	$OPENSSL dgst -sha256 < "$BINDIR/$LOC_ROOTFS_FILE_BZ2" | cut -f2 -d" " > $LOC_ROOTFS_FILE.hash
-	$OPENSSL rsautl -sign -inkey $HOME/atlas-signing-keys/$keyname.private.pem -keyform PEM -in $LOC_ROOTFS_FILE.hash > $LOC_ROOTFS_FILE.signature.$keyname
-	$BASE64 -w0 < $LOC_ROOTFS_FILE.signature.$keyname > $LOC_ROOTFS_FILE.signature.$keyname.asc
+	$OPENSSL dgst -sha256 < "$BINDIR/$LOC_ROOTFS_FILE_BZ2" | cut -f2 -d" " > $LOC_ROOTFS_FILE_BASE.hash
+	$OPENSSL rsautl -sign -inkey $HOME/atlas-signing-keys/$keyname.private.pem -keyform PEM -in $LOC_ROOTFS_FILE_BASE.hash > $LOC_ROOTFS_FILE_BASE.signature.$keyname
+	$BASE64 -w0 < $LOC_ROOTFS_FILE_BASE.signature.$keyname > $LOC_ROOTFS_FILE_BASE.signature.$keyname.asc
 	sigarg="--sig 1 $keyname $(cat $LOC_ROOTFS_FILE.signature.$keyname.asc)"
 fi
 
