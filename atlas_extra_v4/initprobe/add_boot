@@ -1,0 +1,37 @@
+#!/bin/sh
+TMPROOT=/tmp/root
+BINDIR=/home/atlas/openwrt/bin/targets/sunxi/cortexa53
+BOOTDIR=/home/atlas/openwrt/build_dir/target-aarch64_cortex-a53_musl/root-sunxi/boot
+ROOT=openwrt-sunxi-cortexa53-device-sun50i-h5-nanopi-neo-plus2-rootfs.tar.gz
+ATLASROOT=openwrt-sunxi-cortexa53-atlas-rootfs.tar
+FIRMWARE_APPS_VERSION_FILE=$TMPROOT/home/atlas/state/FIRMWARE_APPS_VERSION
+INITPROBE_DIR=/home/atlas/openwrt/initprobe
+EXTRA_DIR=/home/atlas/openwrt/files/
+
+
+rm -rf $TMPROOT
+mkdir -p $TMPROOT
+(cd $TMPROOT && tar xfz $BINDIR/$ROOT)
+
+mkdir $TMPROOT/boot
+cd $TMPROOT/boot
+cp $BOOTDIR/boot.scr .
+cp $BOOTDIR/dtb .
+cp $BOOTDIR/sun50i-h5-nanopi-neo-plus2-boot-emmc-p2.scr .
+cp $BOOTDIR/sun50i-h5-nanopi-neo-plus2-boot-emmc-p3.scr .
+cp $BOOTDIR/sun50i-h5-nanopi-neo-plus2-boot-usd-p1.scr .
+cp $BOOTDIR/sun50i-h5-nanopi-neo-plus2-u-boot-with-spl.bin .
+cp $BOOTDIR/uImage .
+
+# Now create the image file
+(cd $TMPROOT && tar cf $BINDIR/$ATLASROOT .)
+
+FIRMWARE_APPS_VERSION=`cat $FIRMWARE_APPS_VERSION_FILE`
+echo  "build version $FIRMWARE_APPS_VERSION"
+ROOTFS_VERSION="$FIRMWARE_APPS_VERSION"
+ROOTFS_FILE="rootfs-$ROOTFS_VERSION.img.bz2"
+
+cd $BINDIR  
+
+rm -f "$ROOTFS_FILE"
+bzip2 -c -1 "$ATLASROOT" > "$ROOTFS_FILE"

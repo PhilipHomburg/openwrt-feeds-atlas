@@ -1,0 +1,43 @@
+#!/bin/bash
+export probe_env=$1
+
+model="nanopi-neo-plus2"
+
+cwd=$PWD
+basedir=$cwd/$(dirname "$0")
+cd "$basedir"
+
+"$basedir"/add_boot
+
+BINDIR=/home/atlas/openwrt/bin/targets/sunxi/cortexa53
+FIRMWARE_APPS_VERSION_FILE=/tmp/root/home/atlas/state/FIRMWARE_APPS_VERSION
+FIRMWARE_APPS_VERSION=`cat $FIRMWARE_APPS_VERSION_FILE`
+ROOTFS_VERSION="$FIRMWARE_APPS_VERSION"
+LOC_ROOTFS_FILE="rootfs-$ROOTFS_VERSION.img.bz2"
+ROOTFS_FILE="rootfs-$model-$ROOTFS_VERSION.img.bz2"
+OPENSSL=openssl
+BASE64=base64
+KEYDIR=$HOME/atlas-signing-keys
+
+if [ $probe_env = "prod" ] ; then
+	PREF=""
+else
+	PREF="-$probe_env"
+fi
+
+sigarg=''
+if [ $probe_env = "dev" ]
+then
+	# Sign firmware
+	keyname=2018-04-23-dev
+	$OPENSSL dgst -sha256 < $BINDIR/$LOC_ROOTFS_FILE | cut -f2 -d" " > $LOC_ROOTFS_FILE.hash
+	$OPENSSL rsautl -sign -inkey "$KEYDIR"/$keyname.private.pem -keyform PEM -in $LOC_ROOTFS_FILE.hash > $LOC_ROOTFS_FILE.signature.$keyname
+	$BASE64 -w0 < $LOC_ROOTFS_FILE.signature.$keyname > $LOC_ROOTFS_FILE.signature.$keyname.asc
+	sigarg="--sig 1 $keyname $(cat $LOC_ROOTFS_FILE.signature.$keyname.asc)"
+fi
+
+#exit
+
+scp $BINDIR/$LOC_ROOTFS_FILE atlas@admin$PREF:$ROOTFS_FILE
+printf  "./atlas/manage.py import_app -a $model -w $ROOTFS_VERSION -g md5 -f ./$ROOTFS_FILE $sigarg\n"
+time ssh atlas@admin$PREF "./atlas/manage.py import_app -a $model -w $ROOTFS_VERSION -g md5 -f ./$ROOTFS_FILE $sigarg"
