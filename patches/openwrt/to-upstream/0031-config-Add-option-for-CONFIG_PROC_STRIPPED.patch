@@ -1,4 +1,4 @@
-From d989ad5c06e4d83b1c32b91408985fac20a52694 Mon Sep 17 00:00:00 2001
+From 574b8928c66da92731b29b92f6032518a2ddb851 Mon Sep 17 00:00:00 2001
 From: Ben Kochie <superq@gmail.com>
 Date: Mon, 6 Apr 2020 10:23:41 +0200
 Subject: [PATCH] config: Add option for CONFIG_PROC_STRIPPED
@@ -28,18 +28,18 @@ index 87053b7..e60ecb3 100644
  config KERNEL_SLABINFO
  	select KERNEL_SLUB_DEBUG
 diff --git a/target/linux/generic/config-4.14 b/target/linux/generic/config-4.14
-index 50ae00c..7343308 100644
+index 3e39b5c..042fab0 100644
 --- a/target/linux/generic/config-4.14
 +++ b/target/linux/generic/config-4.14
-@@ -3647,7 +3647,7 @@ CONFIG_PRINT_STACK_DEPTH=64
- CONFIG_PROC_FS=y
- # CONFIG_PROC_KCORE is not set
- # CONFIG_PROC_PAGE_MONITOR is not set
--CONFIG_PROC_STRIPPED=y
-+# CONFIG_PROC_STRIPPED is not set
- CONFIG_PROC_SYSCTL=y
- # CONFIG_PROFILE_ALL_BRANCHES is not set
- # CONFIG_PROFILE_ANNOTATED_BRANCHES is not set
+@@ -2735,7 +2735,7 @@ CONFIG_MODULES=y
+ # CONFIG_MODULE_FORCE_UNLOAD is not set
+ # CONFIG_MODULE_SIG is not set
+ # CONFIG_MODULE_SRCVERSION_ALL is not set
+-CONFIG_MODULE_STRIPPED=y
++# CONFIG_MODULE_STRIPPED is not set
+ CONFIG_MODULE_UNLOAD=y
+ # CONFIG_MODVERSIONS is not set
+ # CONFIG_MOST is not set
 -- 
-2.26.0
+2.30.0
 
