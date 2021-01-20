@@ -1,0 +1,24 @@
+From 91180edfa436e0b94f9ab1f7fa709bdb7de97673 Mon Sep 17 00:00:00 2001
+From: Michal Hrusecky <michal.hrusecky@turris.com>
+Date: Wed, 20 Jan 2021 10:33:33 +0100
+Subject: [PATCH] Do not remove /boot from rootfs
+
+---
+ include/rootfs.mk | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/include/rootfs.mk b/include/rootfs.mk
+index f2d2494..f25be15 100644
+--- a/include/rootfs.mk
++++ b/include/rootfs.mk
+@@ -96,7 +96,6 @@ define prepare_rootfs
+ 	rm -f $(1)/usr/lib/opkg/lists/*
+ 	rm -f $(1)/usr/lib/opkg/info/*.postinst*
+ 	rm -f $(1)/var/lock/*.lock
+-	rm -rf $(1)/boot
+ 	$(call clean_ipkg,$(1))
+ 	$(call mklibs,$(1))
+ endef
+-- 
+2.30.0
+
