@@ -3,7 +3,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=atlasmsm
-PKG_VERSION:=2.4.1
+PKG_VERSION:=2.5.1
 PKG_RELEASE:=1
 PKG_FLAGS:=essential
 
