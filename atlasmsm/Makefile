@@ -9,7 +9,7 @@ PKG_FLAGS:=essential
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/RIPE-NCC/ripe-atlas-probe-busybox.git
-PKG_SOURCE_VERSION:=2c770cac764aba42ea9d204fd28494f91782b4a9
+PKG_SOURCE_VERSION:=2ab871143adacbf6f30525861075e468f68e71c3
 PKG_MIRROR_HASH:=7b76e0a8ff09d95ebd2083cfb1f9ac097be7f836e648238fabb1a4e416ddc4a8
 
 # For V3 probes:
