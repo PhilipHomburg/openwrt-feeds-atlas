@@ -33,7 +33,7 @@ fi
 P="sfdisk_2.21.2-1_ar71xx.ipk libext2fs_1.42.4-1_ar71xx.ipk"
 P="$P e2fsprogs_1.42.4-1_ar71xx.ipk libevent2_2.1.11-1_ar71xx.ipk"
 P="$P libevent2-openssl_2.1.11-1_ar71xx.ipk"
-P="$P atlasmsm_2.4.1-1_ar71xx.ipk atlasprobe_5040-1_ar71xx.ipk"
+P="$P atlasmsm_2.5.1-1_ar71xx.ipk atlasprobe_5060-1_ar71xx.ipk"
 P="$P atlas_extra_v3_1.0-1_ar71xx.ipk $CHRONY"
 P="$P libcap_2.22-1_ar71xx.ipk libcom_err_1.42.4-1_ar71xx.ipk"
 P="$P coreutils-base64_8.16-1_ar71xx.ipk openssl-util_1.0.2n-1_ar71xx.ipk"
