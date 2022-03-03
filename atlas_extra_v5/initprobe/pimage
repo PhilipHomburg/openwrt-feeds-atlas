@@ -76,6 +76,7 @@ then
 	$OPENSSL rsautl -sign -inkey $HOME/atlas-signing-keys/$keyname.private.pem -keyform PEM -in $LOC_ROOTFS_FILE_BASE.hash > $LOC_ROOTFS_FILE_BASE.signature.$keyname
 	$BASE64 -w0 < $LOC_ROOTFS_FILE_BASE.signature.$keyname > $LOC_ROOTFS_FILE_BASE.signature.$keyname.asc
 	sigarg="--sig 1 $keyname $(cat $LOC_ROOTFS_FILE_BASE.signature.$keyname.asc)"
+	rm -f ${LOC_ROOTFS_FILE_BASE}.hash ${LOC_ROOTFS_FILE_BASE}.signature.${keyname} ${LOC_ROOTFS_FILE_BASE}.signature.${keyname}.asc
 fi
 
 #exit

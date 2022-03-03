@@ -65,6 +65,7 @@ then
 	$OPENSSL rsautl -sign -inkey "$KEYDIR"/$keyname.private.pem -keyform PEM -in $LOC_ROOTFS_FILE.hash > $LOC_ROOTFS_FILE.signature.$keyname
 	$BASE64 -w0 < $LOC_ROOTFS_FILE.signature.$keyname > $LOC_ROOTFS_FILE.signature.$keyname.asc
 	sigarg="--sig 1 $keyname $(cat $LOC_ROOTFS_FILE.signature.$keyname.asc)"
+	rm -f ${LOC_ROOTFS_FILE}.hash ${LOC_ROOTFS_FILE}.signature.${keyname} ${LOC_ROOTFS_FILE}.signature.${keyname}.asc
 fi
 
 #exit
