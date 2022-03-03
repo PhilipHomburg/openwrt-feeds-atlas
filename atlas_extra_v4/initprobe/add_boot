@@ -4,9 +4,7 @@ BINDIR=/home/atlas/openwrt/bin/targets/sunxi/cortexa53
 BOOTDIR=/home/atlas/openwrt/build_dir/target-aarch64_cortex-a53_musl/root-sunxi/boot
 ROOT=openwrt-sunxi-cortexa53-device-sun50i-h5-nanopi-neo-plus2-rootfs.tar.gz
 ATLASROOT=openwrt-sunxi-cortexa53-atlas-rootfs.tar
-FIRMWARE_APPS_VERSION_FILE=$TMPROOT/home/atlas/state/FIRMWARE_APPS_VERSION
-INITPROBE_DIR=/home/atlas/openwrt/initprobe
-EXTRA_DIR=/home/atlas/openwrt/files/
+FIRMWARE_APPS_VERSION_FILE=${TMPROOT}/home/atlas/state/FIRMWARE_APPS_VERSION
 
 
 rm -rf $TMPROOT

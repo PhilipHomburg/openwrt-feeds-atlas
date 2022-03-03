@@ -7,8 +7,6 @@ ATLASROOT=openwrt-ar71xx-atlas-rootfs.tar
 TMPROOT=/tmp/root
 FIRMWARE_APPS_VERSION_FILE=$TMPROOT/home/atlas/state/FIRMWARE_APPS_VERSION
 UTILS_DIR=utils
-INITPROBE_DIR=/home/atlas/openwrt/initprobe
-EXTRA_DIR=/home/atlas/openwrt/files/
 
 NTPD="ntpd_4.2.8-1_ar71xx.ipk"
 NTPUTILS="ntp-utils_4.2.8-1_ar71xx.ipk"
@@ -58,9 +56,6 @@ rm -f $TMPROOT/home/atlas/state/mode
 rm -f $TMPROOT/home/atlas/etc/2*-[0-9]*-[0-9]*.dev
 rm -f $TMPROOT/home/atlas/etc/2*-[0-9]*-[0-9]*.test
 rm -f $TMPROOT/home/atlas/etc/2*-[0-9]*-[0-9]*.prod
-
-# copy passwdset script
-# cp $INITPROBE_DIR/passwdset $TMPROOT/home/atlas/bin/.
 
 add_package()
 {
