@@ -1,16 +1,33 @@
 #!/bin/sh
 set -e 
 
-BINDIR=/home/atlas/openwrt/bin/ar71xx
+OPENWRT=$PWD
+BINDIR=${OPENWRT}/bin/ar71xx
 ROOT=openwrt-ar71xx-generic-rootfs.tar.gz
 ATLASROOT=openwrt-ar71xx-atlas-rootfs.tar
-TMPROOT=/tmp/root
+TMPROOT=$(mktemp -d)
 FIRMWARE_APPS_VERSION_FILE=$TMPROOT/home/atlas/state/FIRMWARE_APPS_VERSION
 UTILS_DIR=utils
 
 NTPD="ntpd_4.2.8-1_ar71xx.ipk"
 NTPUTILS="ntp-utils_4.2.8-1_ar71xx.ipk"
 CHRONY="chrony_1.26-2_ar71xx.ipk"
+
+for NEEDED in include package tools scripts target toolchain; do
+	if [ ! -d "${OPENWRT}/${NEEDED}" ]; then
+		echo 'Please execute from an OpenWRT v3 directory'
+		rm -rf ${TMPROOT}
+		exit 1
+	fi
+done
+
+if ( [ ! -d "${OPENWRT}/build_dir" ] ||
+     [ ! -d "${OPENWRT}/staging_dir" ] ||
+     [ ! -d "${BINDIR}" ] ); then
+	echo 'Please execute from a built OpenWRT v3 directory'
+	rm -rf ${TMPROOT}
+	exit 1
+fi
 
 # Basic packages
 P="sfdisk_2.21.2-1_ar71xx.ipk libext2fs_1.42.4-1_ar71xx.ipk"
@@ -45,8 +62,6 @@ PACKAGES="$P $PD"
 
 TMPPACKAGE=/tmp/package
 
-rm -rf $TMPROOT
-mkdir -p $TMPROOT
 (cd $TMPROOT && tar xfz $BINDIR/$ROOT)
 
 # Remove a few files from the root filesystem
@@ -103,3 +118,4 @@ tar cvf rootfs-$ROOTFS_VERSION.img $UTILS_DIR openwrt-ar71xx-atlas-rootfs.tar
 ROOTFS_FILE="rootfs-$ROOTFS_VERSION.img.bz2"
 rm -f $ROOTFS_FILE
 bzip2 -1 "rootfs-$ROOTFS_VERSION.img"
+rm -rf $TMPROOT

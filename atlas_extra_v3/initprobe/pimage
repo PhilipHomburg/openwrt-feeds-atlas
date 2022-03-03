@@ -3,21 +3,52 @@ export probe_env=$1
 
 model="tl-mr3020"
 
-cwd=$PWD
-basedir=$cwd/$(dirname "$0")
-cd "$basedir"
+OPENWRT=${PWD}
+basedir=${OPENWRT}/$(dirname "$0")
 
-"$basedir"/add_atlas
-
-BINDIR=/home/atlas/openwrt/bin/ar71xx
-FIRMWARE_APPS_VERSION_FILE=/tmp/root/home/atlas/state/FIRMWARE_APPS_VERSION
-FIRMWARE_APPS_VERSION=`cat $FIRMWARE_APPS_VERSION_FILE`
-ROOTFS_VERSION="$FIRMWARE_APPS_VERSION"
-LOC_ROOTFS_FILE="rootfs-$ROOTFS_VERSION.img.bz2"
-ROOTFS_FILE="rootfs-$model-$ROOTFS_VERSION.img.bz2"
+BINDIR=${OPENWRT}/bin/ar71xx
+ATLASROOT=${BINDIR}/openwrt-ar71xx-atlas-rootfs.tar
 OPENSSL=openssl
 BASE64=base64
 KEYDIR=$HOME/atlas-signing-keys
+
+if [ ! -d "${KEYDIR}" ]; then
+	echo 'Please setup ${KEYDIR}'
+	exit 1
+fi
+
+for NEEDED in include package tools scripts target toolchain; do
+	if [ ! -d "${OPENWRT}/${NEEDED}" ]; then
+		echo 'Please execute from an OpenWRT v3 directory'
+		exit 1
+	fi
+done
+
+if ( [ ! -d "${OPENWRT}/build_dir" ] ||
+     [ ! -d "${OPENWRT}/staging_dir" ] ||
+     [ ! -d "${BINDIR}" ] ||
+     [ ! -f "${ATLASROOT}" ] ); then
+	echo 'Please execute from a built OpenWRT v3 directory'
+	exit 1
+fi
+
+case "${probe_env}" in
+	prod|test|dev)
+		;;
+
+	*)
+		echo 'Please specify environment'
+		exit 1
+		;;
+esac
+
+"$basedir"/add_atlas || exit 1
+cd "$basedir"
+
+FIRMWARE_APPS_VERSION=$(tar Oxvf ${ATLASROOT} ./home/atlas/state/FIRMWARE_APPS_VERSION)
+ROOTFS_VERSION="$FIRMWARE_APPS_VERSION"
+LOC_ROOTFS_FILE="rootfs-$ROOTFS_VERSION.img.bz2"
+ROOTFS_FILE="rootfs-$model-$ROOTFS_VERSION.img.bz2"
 
 if [ $probe_env = "prod" ] ; then
 	PREF=""
@@ -38,6 +69,15 @@ fi
 
 #exit
 
-scp $BINDIR/$LOC_ROOTFS_FILE atlas@admin$PREF:$ROOTFS_FILE
+scp $BINDIR/$LOC_ROOTFS_FILE atlas@admin$PREF:$ROOTFS_FILE >/dev/null 2>&1
+copyres=$?
+if [ $copyres -ne 0 ]; then
+	echo "Cannot automatically install firmware on atlas@admin$PREF. Please:"
+	echo "- Copy $BINDIR/$LOC_ROOTFS_FILE to atlas@admin$PREF:$ROOTFS_FILE"
+	echo -n "- Execute on atlas@admin$PREF "
+fi
+
 printf  "./atlas/manage.py import_app -a $model -w $ROOTFS_VERSION -g md5 -f ./$ROOTFS_FILE $sigarg\n"
-ssh atlas@admin$PREF "./atlas/manage.py import_app -a $model -w $ROOTFS_VERSION -g md5 -f ./$ROOTFS_FILE $sigarg"
+if [ $copyres -eq 0 ]; then
+	ssh atlas@admin$PREF "./atlas/manage.py import_app -a $model -w $ROOTFS_VERSION -g md5 -f ./$ROOTFS_FILE $sigarg"
+fi
