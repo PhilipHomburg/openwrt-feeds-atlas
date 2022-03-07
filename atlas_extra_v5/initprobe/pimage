@@ -17,6 +17,10 @@ BINDIR=${OPENWRT}/bin/targets/mvebu/cortexa53
 OPENSSL=openssl
 BASE64=base64
 KEYDIR=$HOME/atlas-signing-keys
+LOC_ROOTFS_FILE_BASE="turrisos-5.2.7-9882a54c4848e2e282bca435c6aa0025d9fa37df-mvebu-cortexa53-device-ripe-atlas-rootfs.tar"
+LOC_ROOTFS_FILE_GZ="$LOC_ROOTFS_FILE_BASE".gz
+LOC_ROOTFS_FILE_BZ2="$LOC_ROOTFS_FILE_GZ".bz2
+ATLASROOT="${BINDIR}/${LOC_ROOTFS_FILE_GZ}"
 
 if [ ! -d "${KEYDIR}" ]; then
 	echo 'Please setup ${KEYDIR}'
@@ -50,12 +54,9 @@ esac
 
 cd "$basedir"
 
-FIRMWARE_APPS_VERSION=$(tar Oxvf ${ATLASROOT} ./home/atlas/state/FIRMWARE_APPS_VERSION)
-LOC_ROOTFS_FILE_BASE="turrisos-5.2.7-9882a54c4848e2e282bca435c6aa0025d9fa37df-mvebu-cortexa53-device-ripe-atlas-rootfs.tar"
+FIRMWARE_APPS_VERSION=$(tar Oxf ${ATLASROOT} ./home/atlas/state/FIRMWARE_APPS_VERSION)
 ROOTFS_VERSION="$FIRMWARE_APPS_VERSION"
 ROOTFS_FILE="rootfs-$model-$ROOTFS_VERSION.img.bz2"
-LOC_ROOTFS_FILE_GZ="$LOC_ROOTFS_FILE_BASE".gz
-LOC_ROOTFS_FILE_BZ2="$LOC_ROOTFS_FILE_GZ".bz2
 
 # The Atlas backend wants bzip2, but schnapps only takes .gz
 bzip2 -c <"$BINDIR/$LOC_ROOTFS_FILE_GZ" >"$BINDIR/$LOC_ROOTFS_FILE_BZ2"
